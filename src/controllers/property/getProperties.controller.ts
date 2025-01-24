@@ -1,29 +1,23 @@
 import { Request, Response, NextFunction } from "express";
 import { sendResponse } from "../../helpers/utils";
 import Property from "../../models/Property";
+import { GetPropertiesQueryType } from "../../schemas/property/getProperties.schema";
 
 const getProperties = async (
-  req: Request,
+  req: Request<unknown, unknown, unknown, GetPropertiesQueryType>,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    // Pagination
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 10;
-    const skip = (page - 1) * limit;
     // Extract filter
     const {
       title,
       description,
       transactionType,
       type,
-      "location.address": address,
-      "location.district": district,
-      "location.city": city,
-      "location.ward": ward,
-      "location.country": country,
-      "price.value": priceRange,
+      location,
+      minPrice,
+      maxPrice,
       status,
       author,
       tags,
@@ -31,7 +25,11 @@ const getProperties = async (
       "features.bathrooms": bathroomsRange,
       "features.floorArea.value": floorAreaRange,
       project,
+      page,
+      limit,
     } = req.query;
+
+    const skip = (page - 1) * limit;
 
     // Build filter
     const filter: { [key: string]: any } = {};
@@ -40,12 +38,16 @@ const getProperties = async (
       filter.description = { $regex: description, $options: "i" };
     if (type) filter.type = type;
     if (transactionType) filter.transactionType = transactionType;
-    if (address)
-      filter["location.address"] = { $regex: address, $options: "i" };
-    if (city) filter["location.city"] = city;
-    if (district) filter["location.district"] = district;
-    if (ward) filter["location.ward"] = ward;
-    if (country) filter["location.country"] = country;
+    if (location) {
+      const { address, district, city, ward, country } = location;
+      filter.location = {};
+      if (address) filter.location.address = { $regex: address, $options: "i" };
+      if (city) filter.location.city = city;
+      if (district) filter.location.district = district;
+      if (ward) filter.location.ward = ward;
+      if (country) filter.location.country = country;
+    }
+
     if (status) filter.status = status;
     if (author) filter.author = author;
     if (tags && typeof tags === "string")

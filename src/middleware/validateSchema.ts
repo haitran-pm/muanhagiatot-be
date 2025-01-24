@@ -21,9 +21,12 @@ const validateSchema = (schemas: ValidationSchemas): RequestHandler => {
     Object.entries(schemas).forEach(([part, schema]) => {
       if (schema) {
         // Đảm bảo part value không null hoặc undefined
-        const { error } = schema.validate((req as any)[part], {
+        const { error, value } = schema.validate((req as any)[part], {
           abortEarly: false,
         }); // Function của Joi, abortEarly để không exit giữa chừng
+        // Gán lại giá trị cho request sau khi transform, thì controller mới có giá trị default nếu không truyền vào
+        (req as any)[part] = value;
+
         if (error) {
           errors = errors.concat(
             // Kết hợp với các lỗi trước đó (nếu có) thành một array errors
